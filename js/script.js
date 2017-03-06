@@ -11,6 +11,12 @@ function viewModel() {
     locations = ko.observableArray();
     radius = ko.observable(2750);
     foursquareData = ko.observable([]);
+
+    isNameChecked = ko.observable();
+    isNameChecked.subscribe(function(newValue){
+        console.log(newValue);
+    });
+
 }
 
 // Initiate viewModel
@@ -43,28 +49,34 @@ function getLocationsFoursquare(lat, lng, search, index) {
         },
         type: "GET",
     }).done(function(data) {
-      var no_data = {name: 'No data!', location: {address: 'No address!'}, url: 'https://www.google.ca/#q='+locations()[index].name,is_data: false};
-      if (data.response.venues.length > 0) {
-        var obj = data.response.venues[0];
-        if ('name' in obj) {
-          foursquareData()[index] = obj;
-          if (!('url' in obj)) {
-            obj['url'] = 'https://www.google.ca/#q='+obj.name;
-          }
-          if (!('location' in obj)) {
-            obj['location'] = {address: 'No address!'};
-          }
-          else if (!('address' in obj.location)) {
-            obj['location']['address'] = 'No address!';
-          }
+        var no_data = {
+            name: 'No data!',
+            location: {
+                address: 'No address!'
+            },
+            url: 'https://www.google.ca/#q=' + locations()[index].name,
+            is_data: false
+        };
+        if (data.response.venues.length > 0) {
+            var obj = data.response.venues[0];
+            if ('name' in obj) {
+                foursquareData()[index] = obj;
+                if (!('url' in obj)) {
+                    obj['url'] = 'https://www.google.ca/#q=' + obj.name;
+                }
+                if (!('location' in obj)) {
+                    obj['location'] = {
+                        address: 'No address!'
+                    };
+                } else if (!('address' in obj.location)) {
+                    obj['location']['address'] = 'No address!';
+                }
+            } else {
+                foursquareData()[index] = no_data;
+            }
+        } else {
+            foursquareData()[index] = no_data;
         }
-        else  {
-          foursquareData()[index] = no_data;
-        }
-      }
-      else {
-        foursquareData()[index] = no_data;
-      }
     });
 }
 
@@ -93,7 +105,7 @@ function getLocations(lat, lng, search) {
                 lng = places[i].restaurant.location.longitude;
                 // if lat and ln sre not zero
                 if (lat * lng != 0) {
-                    getLocationsFoursquare(lat, lng, name, i-j);
+                    getLocationsFoursquare(lat, lng, name, i - j);
                     locations.push({
                         index: i - j,
                         name: name,
@@ -125,8 +137,8 @@ function listClick(data) {
 
 // Add markers to markers array
 function addMarkers(name, lat, lng) {
-    var image_home = 'https://cdn1.iconfinder.com/data/icons/Map-Markers-Icons-Demo-PNG/32/Map-Marker-Ball-Chartreuse.png';
-    var image_places = 'https://cdn1.iconfinder.com/data/icons/Map-Markers-Icons-Demo-PNG/32/Map-Marker-Ball-Azure.png';
+    var image_home = 'http://maps.google.com/mapfiles/ms/icons/green-dot.png';
+    var image_places = 'http://maps.google.com/mapfiles/ms/icons/red-dot.png';
 
     var position = new google.maps.LatLng(lat, lng);
     bounds.extend(position);
@@ -154,20 +166,25 @@ function addInfoWindow(marker, content) {
 
     google.maps.event.addListener(marker, 'click', (function(marker, content, infowindow) {
         return function() {
+            marker.setIcon('http://maps.google.com/mapfiles/ms/icons/blue-dot.png');
             infowindow.setContent(
-                '<a href="'+content.url+'" target="_blank">'+content.name+'</a>'+
-                '<p>'+content.location.address+'</p>'
+                '<a href="' + content.url + '" target="_blank">' + content.name + '</a>' +
+                '<p>' + content.location.address + '</p>'
             );
             infowindow.open(map, marker);
         };
     })(marker, content, infowindow));
+
+    google.maps.event.addListener(infowindow, 'closeclick', function() {
+        marker.setIcon('http://maps.google.com/mapfiles/ms/icons/red-dot.png');
+    });
 }
 
 // Animate map markers to drop
 function drop() {
     clearMarkers();
     for (var i = 0; i < locations().length; i++) {
-        addMarkerWithTimeout(locations()[i], (i+1) * 300, i);
+        addMarkerWithTimeout(locations()[i], (i + 1) * 300, i);
     }
 }
 

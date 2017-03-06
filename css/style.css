@@ -55,6 +55,11 @@ body {
   height: 50px;
 }
 
+.filters {
+  padding-left: 20px;
+  color: white;
+}
+
 .text-muted {
   color: white;
   margin-left: 20px;
@@ -196,7 +201,7 @@ body {
 }
 
 #locations-list {
-    height: calc(100vh - 240px);
+    height: calc(100vh - 300px);
     overflow: hidden;
     overflow-y: auto;
 }

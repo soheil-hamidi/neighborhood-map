@@ -27,6 +27,17 @@
                         <span class="input-group-btn"><button class="btn btn-default" data-bind="click: find" type="submit"><span class="glyphicon glyphicon-search" aria-hidden="true"></span></button>
                         </span>
                     </form>
+                    <div class="filters">
+                        <p>Show restaurants that have:</p>
+                        <form>
+                            <div class="checkbox">
+                                <label><input type="checkbox" data-bind="checked: isNameChecked">Name</label>
+                            </div>
+                            <div class="checkbox">
+                                <label><input type="checkbox" value="">Address</label>
+                            </div>
+                        </form>
+                    </div>
                     <li>
                         <p data-bind="text: foursquareData"></p>
                         <span class="text-muted">Radius: <span data-bind="text: radius"></span> Meters </span>
@@ -63,7 +74,7 @@
                     <a class="navbar-brand" href="/">Neighborhood Map</a>
                 </div>
                 <ul class="nav navbar-nav navbar-right">
-                  <h4><span class="glyphicon glyphicon-info-sign info-button" data-toggle="modal" data-target="#myModal"></span></h4>
+                    <h4><span class="glyphicon glyphicon-info-sign info-button" data-toggle="modal" data-target="#myModal"></span></h4>
 
                 </ul>
                 <!--/.nav-collapse -->
@@ -86,8 +97,8 @@
                     <div class="modal-body">
                         <p>The website is using two different APIs to gather data.</p>
                         <ol>
-                          <li><a href="https://developers.zomato.com/api" target="_blank">Zomato</a>. (for the side-bar list)</li>
-                          <li><a href="https://developer.foursquare.com/" target="_blank">Foursquare</a>. (for map info windows)</li>
+                            <li><a href="https://developers.zomato.com/api" target="_blank">Zomato</a>. (for the side-bar list)</li>
+                            <li><a href="https://developer.foursquare.com/" target="_blank">Foursquare</a>. (for map info windows)</li>
                         </ol>
                     </div>
                     <div class="modal-footer">
