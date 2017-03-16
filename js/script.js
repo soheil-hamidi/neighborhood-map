@@ -249,8 +249,8 @@ function findGeolocation() {
 // Make default locations or get geo location and search
 function defaultLocations(name, lat, lng) {
     addMarkers(name, lat, lng);
-    radius(2750);
     if (name === 'Toronto') {
+        radius(2750);
         locations([]);
         locations.push({
             "index": 0,
