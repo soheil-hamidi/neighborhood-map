@@ -1,8 +1,10 @@
 var markers = [];
 var locations = [];
+var noFilterLocations = []
 var search = "";
 var radius = null;
-var foursquareData = [];
+var isNameChecked = false;
+var isAddressChecked = false;
 var bounds = new google.maps.LatLngBounds();
 
 // viewModel
@@ -10,18 +12,34 @@ function viewModel() {
     search = ko.observable('pizza');
     locations = ko.observableArray();
     radius = ko.observable(2750);
-    foursquareData = ko.observable([]);
 
     isNameChecked = ko.observable();
-    isNameChecked.subscribe(function(newValue){
-        console.log(newValue);
+    isNameChecked.subscribe(function(newValue) {
+        filter();
     });
-
 }
 
 // Initiate viewModel
 var vm = new viewModel();
 ko.applyBindings(vm);
+
+// filter the data if it hase no data to show
+function filter() {
+    var tempLocations = [];
+    if (isNameChecked()) {
+        noFilterLocations.length = 0;
+        for (var i = 0; i < locations().length; i++) {
+            if (locations()[i].foursquare.name != "No data!") {
+                tempLocations.push(locations()[i]);
+            }
+            noFilterLocations.push(locations()[i]);
+        }
+        locations(tempLocations);
+    } else {
+        locations(noFilterLocations.slice(0));
+    }
+    drop();
+}
 
 // Default location (Toronto)
 var pos = {
@@ -30,8 +48,10 @@ var pos = {
 };
 
 // Find places using the search term
+var executed = false;
+
 function find() {
-    getLocations(pos.lat, pos.lng, search());
+    findGeolocation();
 }
 
 // Model for data from foursquare
@@ -60,7 +80,7 @@ function getLocationsFoursquare(lat, lng, search, index) {
         if (data.response.venues.length > 0) {
             var obj = data.response.venues[0];
             if ('name' in obj) {
-                foursquareData()[index] = obj;
+                locations()[index].foursquare = obj;
                 if (!('url' in obj)) {
                     obj['url'] = 'https://www.google.ca/#q=' + obj.name;
                 }
@@ -72,17 +92,17 @@ function getLocationsFoursquare(lat, lng, search, index) {
                     obj['location']['address'] = 'No address!';
                 }
             } else {
-                foursquareData()[index] = no_data;
+                locations()[index].foursquare = no_data;
             }
         } else {
-            foursquareData()[index] = no_data;
+            locations()[index].foursquare = no_data;
         }
     });
 }
 
 // Model for data from zomato
 function getLocations(lat, lng, search) {
-    locations([])
+    locations([]);
     $.ajax({
         url: "https://developers.zomato.com/api/v2.1/search",
         data: {
@@ -182,6 +202,7 @@ function addInfoWindow(marker, content) {
 
 // Animate map markers to drop
 function drop() {
+    console.log(locations());
     clearMarkers();
     for (var i = 0; i < locations().length; i++) {
         addMarkerWithTimeout(locations()[i], (i + 1) * 300, i);
@@ -192,7 +213,7 @@ function drop() {
 function addMarkerWithTimeout(location, timeout, index) {
     window.setTimeout(function() {
         addMarkers(location.name, location.position.lat, location.position.lng);
-        addInfoWindow(markers[index], foursquareData()[index]);
+        addInfoWindow(markers[index], locations()[index].foursquare);
     }, timeout);
 }
 
@@ -205,28 +226,111 @@ function clearMarkers() {
 }
 
 // Try HTML5 geolocation.
-if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(function(position) {
-        pos = {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude
-        };
-        defaultLocations("Your location!", pos.lat, pos.lng)
-        map.setCenter(pos);
-    }, function() {
+function findGeolocation() {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function(position) {
+            pos = {
+                lat: position.coords.latitude,
+                lng: position.coords.longitude
+            };
+            defaultLocations("Your location!", pos.lat, pos.lng)
+            map.setCenter(pos);
+        }, function() {
+            defaultLocations("Toronto", pos.lat, pos.lng);
+            handleLocationError(true, alert, map.getCenter());
+        });
+    } else {
+        // Browser doesn't support Geolocation
         defaultLocations("Toronto", pos.lat, pos.lng);
-        handleLocationError(true, alert, map.getCenter());
-    });
-} else {
-    // Browser doesn't support Geolocation
-    defaultLocations("Toronto", pos.lat, pos.lng)
-    handleLocationError(false, alert, map.getCenter());
+        handleLocationError(false, alert, map.getCenter());
+    }
 }
 
+// Make default locations or get geo location and search
 function defaultLocations(name, lat, lng) {
     addMarkers(name, lat, lng);
     radius(2750);
-    getLocations(lat, lng, search());
+    if (name === 'Toronto') {
+        locations([]);
+        locations.push({
+            "index": 0,
+            "name": "Boston Pizza",
+            "position": {
+                "lat": "43.6442700000",
+                "lng": "-79.3887450000"
+            },
+            "foursquare": {
+                "name": "Boston Pizza",
+                "location": {
+                    "address": "250 Front street"
+                },
+                "url": "http://www.bostonpizza.com"
+            }
+        });
+        locations.push({
+            "index": 1,
+            "name": "Amsterdam BrewHouse",
+            "position": {
+                "lat": "43.6382180000",
+                "lng": "-79.3848190000"
+            },
+            "foursquare": {
+                "name": "No data!",
+                "location": {
+                    "address": "No address!"
+                },
+                "url": "https://www.google.ca/#q=Amsterdam BrewHouse"
+            }
+        });
+        locations.push({
+            "index": 2,
+            "name": "Pizzaiolo",
+            "position": {
+                "lat": "43.6471530000",
+                "lng": "-79.3955640000"
+            },
+            "foursquare": {
+                "name": "Pizzaiolo",
+                "location": {
+                    "address": "123 Spadina Ave"
+                },
+                "url": "https://www.google.ca/#q=Pizzaiolo"
+            }
+        });
+        locations.push({
+            "index": 3,
+            "name": "Panago",
+            "position": {
+                "lat": "43.6428388889",
+                "lng": "-79.3835055556"
+            },
+            "foursquare": {
+                "name": "Panago",
+                "location": {
+                    "address": "133 Bremner Blvd."
+                },
+                "url": "http://panago.com"
+            }
+        });
+        locations.push({
+            "index": 4,
+            "name": "Pizzeria Libretto",
+            "position": {
+                "lat": "43.6484950000",
+                "lng": "-79.3850740000"
+            },
+            "foursquare": {
+                "name": "Pizzeria Libretto",
+                "location": {
+                    "address": "155 University Ave"
+                },
+                "url": "http://pizzerialibretto.com"
+            }
+        });
+        drop();
+    } else {
+        getLocations(pos.lat, pos.lng, search());
+    }
 }
 
 // Check if the user shared their geolocation or their browser support it
@@ -371,3 +475,5 @@ $("#radiusSlider").slider();
 $("#radiusSlider").on("slide", function(slideEvt) {
     radius(slideEvt.value);
 });
+
+defaultLocations("Toronto", pos.lat, pos.lng);
