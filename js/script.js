@@ -4,12 +4,32 @@ var noFilterLocations = []
 var search = "";
 var radius = null;
 var isNameChecked = false;
-var isAddressChecked = false;
-var bounds = new google.maps.LatLngBounds();
+// Default location (Toronto)
+var pos = {
+    lat: 43.6425662,
+    lng: -79.3892508
+};
+
+// Load google maps async with error handling
+function loadScript() {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src = "https://maps.googleapis.com/maps/api/js?key=AIzaSyCoYRyCKiLeL2Cu2Dadb2OboPtaGzvWldQ&callback=initialize";
+    setTimeout(function() {
+        try {
+            if (!google || !google.maps) {
+                alert("Could not load google map!");
+            }
+        } catch (e) {
+            alert("Could not load google map!");
+        }
+    }, 5000);
+    document.getElementsByTagName("head")[0].appendChild(script);
+}
 
 // viewModel
 function viewModel() {
-    search = ko.observable('pizza');
+    search = ko.observable();
     locations = ko.observableArray();
     radius = ko.observable(2750);
 
@@ -31,26 +51,25 @@ function filter() {
         for (var i = 0; i < locations().length; i++) {
             if (locations()[i].foursquare.name != "No data!") {
                 tempLocations.push(locations()[i]);
+            } else {
+                markers[i].setVisible(false);
             }
             noFilterLocations.push(locations()[i]);
         }
         locations(tempLocations);
     } else {
+        for (var i = 0; i < noFilterLocations.length; i++) {
+            if (noFilterLocations[i].foursquare.name === "No data!") {
+                markers[i].setVisible(true);
+            }
+        }
         locations(noFilterLocations.slice(0));
     }
-    drop();
 }
 
-// Default location (Toronto)
-var pos = {
-    lat: 43.6425662,
-    lng: -79.3892508
-};
-
 // Find places using the search term
-var executed = false;
-
 function find() {
+    isNameChecked(false);
     findGeolocation();
 }
 
@@ -202,7 +221,6 @@ function addInfoWindow(marker, content) {
 
 // Animate map markers to drop
 function drop() {
-    console.log(locations());
     clearMarkers();
     for (var i = 0; i < locations().length; i++) {
         addMarkerWithTimeout(locations()[i], (i + 1) * 300, i);
@@ -252,82 +270,8 @@ function defaultLocations(name, lat, lng) {
     if (name === 'Toronto') {
         radius(2750);
         locations([]);
-        locations.push({
-            "index": 0,
-            "name": "Boston Pizza",
-            "position": {
-                "lat": "43.6442700000",
-                "lng": "-79.3887450000"
-            },
-            "foursquare": {
-                "name": "Boston Pizza",
-                "location": {
-                    "address": "250 Front street"
-                },
-                "url": "http://www.bostonpizza.com"
-            }
-        });
-        locations.push({
-            "index": 1,
-            "name": "Amsterdam BrewHouse",
-            "position": {
-                "lat": "43.6382180000",
-                "lng": "-79.3848190000"
-            },
-            "foursquare": {
-                "name": "No data!",
-                "location": {
-                    "address": "No address!"
-                },
-                "url": "https://www.google.ca/#q=Amsterdam BrewHouse"
-            }
-        });
-        locations.push({
-            "index": 2,
-            "name": "Pizzaiolo",
-            "position": {
-                "lat": "43.6471530000",
-                "lng": "-79.3955640000"
-            },
-            "foursquare": {
-                "name": "Pizzaiolo",
-                "location": {
-                    "address": "123 Spadina Ave"
-                },
-                "url": "https://www.google.ca/#q=Pizzaiolo"
-            }
-        });
-        locations.push({
-            "index": 3,
-            "name": "Panago",
-            "position": {
-                "lat": "43.6428388889",
-                "lng": "-79.3835055556"
-            },
-            "foursquare": {
-                "name": "Panago",
-                "location": {
-                    "address": "133 Bremner Blvd."
-                },
-                "url": "http://panago.com"
-            }
-        });
-        locations.push({
-            "index": 4,
-            "name": "Pizzeria Libretto",
-            "position": {
-                "lat": "43.6484950000",
-                "lng": "-79.3850740000"
-            },
-            "foursquare": {
-                "name": "Pizzeria Libretto",
-                "location": {
-                    "address": "155 University Ave"
-                },
-                "url": "http://pizzerialibretto.com"
-            }
-        });
-        drop();
+        search("sushi");
+        getLocations(pos.lat, pos.lng, search());
     } else {
         getLocations(pos.lat, pos.lng, search());
     }
@@ -341,128 +285,132 @@ function handleLocationError(browserHasGeolocation, infoWindow, pos) {
         'Error: Your browser doesn\'t support geolocation.');
 }
 
-// Map customization
-var map = new google.maps.Map(document.getElementById('map'), {
-    zoom: 14,
-    center: pos,
-    disableDefaultUI: true,
-    styles: [{
-        elementType: 'geometry',
-        stylers: [{
-            color: '#242f3e'
+function initialize() {
+    // Map customization
+    map = new google.maps.Map(document.getElementById('map'), {
+        zoom: 14,
+        center: pos,
+        disableDefaultUI: true,
+        styles: [{
+            elementType: 'geometry',
+            stylers: [{
+                color: '#242f3e'
+            }]
+        }, {
+            elementType: 'labels.text.stroke',
+            stylers: [{
+                color: '#242f3e'
+            }]
+        }, {
+            elementType: 'labels.text.fill',
+            stylers: [{
+                color: '#746855'
+            }]
+        }, {
+            featureType: 'administrative.locality',
+            elementType: 'labels.text.fill',
+            stylers: [{
+                color: '#d59563'
+            }]
+        }, {
+            featureType: 'poi',
+            elementType: 'labels.text.fill',
+            stylers: [{
+                color: '#d59563'
+            }]
+        }, {
+            featureType: 'poi.park',
+            elementType: 'geometry',
+            stylers: [{
+                color: '#263c3f'
+            }]
+        }, {
+            featureType: 'poi.park',
+            elementType: 'labels.text.fill',
+            stylers: [{
+                color: '#6b9a76'
+            }]
+        }, {
+            featureType: 'road',
+            elementType: 'geometry',
+            stylers: [{
+                color: '#38414e'
+            }]
+        }, {
+            featureType: 'road',
+            elementType: 'geometry.stroke',
+            stylers: [{
+                color: '#212a37'
+            }]
+        }, {
+            featureType: 'road',
+            elementType: 'labels.text.fill',
+            stylers: [{
+                color: '#9ca5b3'
+            }]
+        }, {
+            featureType: 'road.highway',
+            elementType: 'geometry',
+            stylers: [{
+                color: '#746855'
+            }]
+        }, {
+            featureType: 'road.highway',
+            elementType: 'geometry.stroke',
+            stylers: [{
+                color: '#1f2835'
+            }]
+        }, {
+            featureType: 'road.highway',
+            elementType: 'labels.text.fill',
+            stylers: [{
+                color: '#f3d19c'
+            }]
+        }, {
+            featureType: 'transit',
+            elementType: 'geometry',
+            stylers: [{
+                color: '#2f3948'
+            }]
+        }, {
+            featureType: 'transit.station',
+            elementType: 'labels.text.fill',
+            stylers: [{
+                color: '#d59563'
+            }]
+        }, {
+            featureType: 'water',
+            elementType: 'geometry',
+            stylers: [{
+                color: '#17263c'
+            }]
+        }, {
+            "featureType": "poi",
+            "stylers": [{
+                "visibility": "off"
+            }]
+        }, {
+            "featureType": "transit",
+            "stylers": [{
+                "visibility": "off"
+            }]
+        }, {
+            featureType: 'water',
+            elementType: 'labels.text.fill',
+            stylers: [{
+                color: '#515c6d'
+            }]
+        }, {
+            featureType: 'water',
+            elementType: 'labels.text.stroke',
+            stylers: [{
+                color: '#17263c'
+            }]
         }]
-    }, {
-        elementType: 'labels.text.stroke',
-        stylers: [{
-            color: '#242f3e'
-        }]
-    }, {
-        elementType: 'labels.text.fill',
-        stylers: [{
-            color: '#746855'
-        }]
-    }, {
-        featureType: 'administrative.locality',
-        elementType: 'labels.text.fill',
-        stylers: [{
-            color: '#d59563'
-        }]
-    }, {
-        featureType: 'poi',
-        elementType: 'labels.text.fill',
-        stylers: [{
-            color: '#d59563'
-        }]
-    }, {
-        featureType: 'poi.park',
-        elementType: 'geometry',
-        stylers: [{
-            color: '#263c3f'
-        }]
-    }, {
-        featureType: 'poi.park',
-        elementType: 'labels.text.fill',
-        stylers: [{
-            color: '#6b9a76'
-        }]
-    }, {
-        featureType: 'road',
-        elementType: 'geometry',
-        stylers: [{
-            color: '#38414e'
-        }]
-    }, {
-        featureType: 'road',
-        elementType: 'geometry.stroke',
-        stylers: [{
-            color: '#212a37'
-        }]
-    }, {
-        featureType: 'road',
-        elementType: 'labels.text.fill',
-        stylers: [{
-            color: '#9ca5b3'
-        }]
-    }, {
-        featureType: 'road.highway',
-        elementType: 'geometry',
-        stylers: [{
-            color: '#746855'
-        }]
-    }, {
-        featureType: 'road.highway',
-        elementType: 'geometry.stroke',
-        stylers: [{
-            color: '#1f2835'
-        }]
-    }, {
-        featureType: 'road.highway',
-        elementType: 'labels.text.fill',
-        stylers: [{
-            color: '#f3d19c'
-        }]
-    }, {
-        featureType: 'transit',
-        elementType: 'geometry',
-        stylers: [{
-            color: '#2f3948'
-        }]
-    }, {
-        featureType: 'transit.station',
-        elementType: 'labels.text.fill',
-        stylers: [{
-            color: '#d59563'
-        }]
-    }, {
-        featureType: 'water',
-        elementType: 'geometry',
-        stylers: [{
-            color: '#17263c'
-        }]
-    }, {
-        "featureType": "poi",
-        "stylers": [{
-            "visibility": "off"
-        }]
-    }, {
-        "featureType": "transit",
-        "stylers": [{
-            "visibility": "off"
-        }]
-    }, {
-        featureType: 'water',
-        elementType: 'labels.text.fill',
-        stylers: [{
-            color: '#515c6d'
-        }]
-    }, {
-        featureType: 'water',
-        elementType: 'labels.text.stroke',
-        stylers: [{
-            color: '#17263c'
-        }]
-    }]
-});
+    });
+    bounds = new google.maps.LatLngBounds();
+    defaultLocations("Toronto", pos.lat, pos.lng);
+}
 
 // Side bar list toggle
 $("#menu-toggle").click(function(e) {
@@ -476,4 +424,4 @@ $("#radiusSlider").on("slide", function(slideEvt) {
     radius(slideEvt.value);
 });
 
-defaultLocations("Toronto", pos.lat, pos.lng);
+window.onload = loadScript();
