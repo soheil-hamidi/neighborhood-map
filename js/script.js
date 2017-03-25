@@ -10,21 +10,9 @@ var pos = {
     lng: -79.3892508
 };
 
-// Load google maps async with error handling
-function loadScript() {
-    var script = document.createElement("script");
-    script.type = "text/javascript";
-    script.src = "https://maps.googleapis.com/maps/api/js?key=AIzaSyCoYRyCKiLeL2Cu2Dadb2OboPtaGzvWldQ&callback=initialize";
-    setTimeout(function() {
-        try {
-            if (!google || !google.maps) {
-                alert("Could not load google map!");
-            }
-        } catch (e) {
-            alert("Could not load google map!");
-        }
-    }, 5000);
-    document.getElementsByTagName("head")[0].appendChild(script);
+// Handle google map load error
+function googleError() {
+    alert("Could not load google map!");
 }
 
 // viewModel
@@ -32,6 +20,14 @@ function viewModel() {
     search = ko.observable();
     locations = ko.observableArray();
     radius = ko.observable(2750);
+    toggleClass = ko.observable();
+    toggleMenu = function() {
+        if (toggleClass() === "toggled") {
+            toggleClass("");
+        } else {
+            toggleClass("toggled");
+        }
+    }
 
     isNameChecked = ko.observable();
     isNameChecked.subscribe(function(newValue) {
@@ -42,6 +38,12 @@ function viewModel() {
 // Initiate viewModel
 var vm = new viewModel();
 ko.applyBindings(vm);
+
+function showInfo() {
+    alert("The website is using two different APIs to gather data.\n \
+          Zomato. (for the side-bar list)\n \
+          Foursquare. (for map info windows)")
+}
 
 // filter the data if it hase no data to show
 function filter() {
@@ -87,34 +89,42 @@ function getLocationsFoursquare(lat, lng, search, index) {
             v: '20170114'
         },
         type: "GET",
-    }).done(function(data) {
-        var no_data = {
-            name: 'No data!',
-            location: {
-                address: 'No address!'
-            },
-            url: 'https://www.google.ca/#q=' + locations()[index].name,
-            is_data: false
-        };
-        if (data.response.venues.length > 0) {
-            var obj = data.response.venues[0];
-            if ('name' in obj) {
-                locations()[index].foursquare = obj;
-                if (!('url' in obj)) {
-                    obj['url'] = 'https://www.google.ca/#q=' + obj.name;
-                }
-                if (!('location' in obj)) {
-                    obj['location'] = {
-                        address: 'No address!'
-                    };
-                } else if (!('address' in obj.location)) {
-                    obj['location']['address'] = 'No address!';
+        success: function(data) {
+            var no_data = {
+                name: 'No data!',
+                location: {
+                    address: 'No address!'
+                },
+                url: 'https://www.google.ca/#q=' + locations()[index].name,
+                is_data: false
+            };
+            if (data.response.venues.length > 0) {
+                var obj = data.response.venues[0];
+                if ('name' in obj) {
+                    locations()[index].foursquare = obj;
+                    if (!('url' in obj)) {
+                        obj['url'] = 'https://www.google.ca/#q=' + obj.name;
+                    }
+                    if (!('location' in obj)) {
+                        obj['location'] = {
+                            address: 'No address!'
+                        };
+                    } else if (!('address' in obj.location)) {
+                        obj['location']['address'] = 'No address!';
+                    }
+                } else {
+                    locations()[index].foursquare = no_data;
                 }
             } else {
                 locations()[index].foursquare = no_data;
             }
-        } else {
-            locations()[index].foursquare = no_data;
+        },
+        error: function(x, t, m) {
+            if (t === "timeout") {
+                alert("The Foursquare API did not load!");
+            } else {
+                alert("Something went wrong!");
+            }
         }
     });
 }
@@ -161,7 +171,7 @@ function getLocations(lat, lng, search) {
         },
         error: function(x, t, m) {
             if (t === "timeout") {
-                alert("The API did not load!");
+                alert("The Zomato API did not load!");
             } else {
                 alert("Something went wrong!");
             }
@@ -411,17 +421,3 @@ function initialize() {
     bounds = new google.maps.LatLngBounds();
     defaultLocations("Toronto", pos.lat, pos.lng);
 }
-
-// Side bar list toggle
-$("#menu-toggle").click(function(e) {
-    e.preventDefault();
-    $("#wrapper").toggleClass("toggled");
-});
-
-// Radius slider
-$("#radiusSlider").slider();
-$("#radiusSlider").on("slide", function(slideEvt) {
-    radius(slideEvt.value);
-});
-
-window.onload = loadScript();
